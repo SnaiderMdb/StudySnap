@@ -3,7 +3,7 @@
 // OCR real en el navegador (Tesseract.js) + análisis local.
 // Sin API key, sin servidor, gratis.
 // ============================================================
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useStudy } from '../store/StudyContext';
 import type { ScannedNote } from '../store/types';
 import { analyzeText } from '../lib/study';
@@ -28,6 +28,14 @@ export default function ScanNotes() {
 
   const [statusMsg, setStatusMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [remaining, setRemaining] = useState<number | null>(null);
+
+  // Al montar, muestra cuántas subidas quedan hoy
+  useEffect(() => {
+    import('../lib/quota').then(({ checkQuota }) =>
+      checkQuota().then((q) => setRemaining(q.remaining)).catch(() => {}),
+    );
+  }, []);
 
   // Procesa el archivo con OCR real y lo guarda en el store.
   async function processFile(file: File) {
@@ -41,6 +49,15 @@ export default function ScanNotes() {
     }
     if (file.size > 10 * 1024 * 1024) {
       setErrorMsg('Archivo muy grande. Máximo 10MB.');
+      setUploadState('error');
+      return;
+    }
+    // Cuota diaria: 5 apuntes por IP por día
+    const { checkQuota, recordUpload, DAILY_LIMIT } = await import('../lib/quota');
+    const quota = await checkQuota();
+    setRemaining(quota.remaining);
+    if (!quota.allowed) {
+      setErrorMsg(`Límite diario alcanzado: ${DAILY_LIMIT} apuntes por día. Vuelve mañana.`);
       setUploadState('error');
       return;
     }
@@ -72,6 +89,8 @@ export default function ScanNotes() {
       });
       setCurrentNote(note);
       setUploadState('done');
+      // Consume 1 de la cuota diaria y actualiza el contador visible
+      recordUpload().then((q) => setRemaining(q.remaining)).catch(() => {});
       // Si hay key de Groq, mejora con IA real en segundo plano
       if (hasGroqKey()) {
         setEnhancing(true);
@@ -154,14 +173,34 @@ export default function ScanNotes() {
           <p style={{ color: '#7C75A6', fontSize: '1rem', maxWidth: '480px', margin: '0 auto' }}>
             Acepta imágenes (JPG, PNG) o archivos PDF. StudySnap organizará todo el contenido por ti.
           </p>
+          {remaining !== null && (
+            <p style={{
+              display: 'inline-block', marginTop: '0.75rem',
+              background: remaining > 0 ? '#EDE9FF' : '#fee2e2',
+              color: remaining > 0 ? '#7C6CE6' : '#991b1b',
+              fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '0.8rem',
+              padding: '0.3rem 0.875rem', borderRadius: '999px',
+            }}>
+              {remaining > 0
+                ? `📤 Te quedan ${remaining} de 5 subidas hoy`
+                : '🚫 Límite diario alcanzado (5/5) — vuelve mañana'}
+            </p>
+          )}
         </div>
 
         {/* Estado: Esperando archivo (idle) */}
         {uploadState === 'idle' && (
           <div
             className={`drop-zone ${isDragging ? 'drag-over' : ''}`}
-            style={{ padding: '3.5rem 2rem', textAlign: 'center', cursor: 'pointer' }}
-            onClick={() => fileInputRef.current?.click()}
+            style={{ padding: '3.5rem 2rem', textAlign: 'center', cursor: 'pointer', opacity: remaining === 0 ? 0.6 : 1 }}
+            onClick={() => {
+              if (remaining === 0) {
+                setErrorMsg('Límite diario alcanzado: 5 apuntes por día. Vuelve mañana.');
+                setUploadState('error');
+                return;
+              }
+              fileInputRef.current?.click();
+            }}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
