@@ -1,0 +1,10 @@
+{
+  "description": "Transform photos of notes into interactive study resources like summaries, flashcards, and quizzes, empowering secondary students to enhance their learning.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
