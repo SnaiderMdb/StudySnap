@@ -2,9 +2,11 @@
 // NavBar.tsx — Barra de navegación principal de StudySnap
 // ============================================================
 import { useState } from 'react';
+import UserMenu from './UserMenu';
+import { useAuth } from '../store/AuthContext';
 
 // Tipo para las secciones de la página
-type Section = 'inicio' | 'escanear' | 'estudiar' | 'progreso' | 'contacto';
+type Section = 'inicio' | 'escanear' | 'estudiar' | 'progreso' | 'contacto' | 'planes';
 
 // Props que recibe la barra de navegación
 interface NavBarProps {
@@ -43,6 +45,7 @@ function LogoIcon() {
 export default function NavBar({ activeSection, onNavigate }: NavBarProps) {
   // Estado para mostrar/ocultar el menú en móviles
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, openAuth } = useAuth();
 
   // Lista de secciones de navegación
   const navItems: { id: Section; label: string }[] = [
@@ -50,6 +53,7 @@ export default function NavBar({ activeSection, onNavigate }: NavBarProps) {
     { id: 'escanear',  label: 'Escanear' },
     { id: 'estudiar',  label: 'Estudiar' },
     { id: 'progreso',  label: 'Mi Progreso' },
+    { id: 'planes',    label: 'Planes' },
     { id: 'contacto',  label: 'Contacto' },
   ];
 
@@ -110,6 +114,12 @@ export default function NavBar({ activeSection, onNavigate }: NavBarProps) {
           >
             Comenzar ✦
           </button>
+          <UserMenu />
+        </div>
+
+        {/* Usuario en móvil + botón de menú hamburguesa */}
+        <div style={{ alignItems: 'center', gap: '0.5rem' }} className="flex md:hidden">
+          <UserMenu />
         </div>
 
         {/* Botón de menú hamburguesa — solo en móviles */}
@@ -154,6 +164,16 @@ export default function NavBar({ activeSection, onNavigate }: NavBarProps) {
               {item.label}
             </button>
           ))}
+
+          {!user && (
+            <button
+              onClick={() => { setMenuOpen(false); openAuth('login'); }}
+              className="btn-secondary"
+              style={{ fontSize: '0.9rem' }}
+            >
+              Ingresar
+            </button>
+          )}
         </div>
       )}
     </nav>

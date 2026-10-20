@@ -5,8 +5,11 @@
 // ============================================================
 import { useState, useRef, useEffect } from 'react';
 import { useStudy } from '../store/StudyContext';
+import { useAuth } from '../store/AuthContext';
 import type { ScannedNote } from '../store/types';
 import { analyzeText } from '../lib/study';
+import { checkQuota, describeQuota, recordUpload } from '../lib/quota';
+import type { QuotaStatus } from '../lib/quota';
 // OCR se importa dinámicamente para no inflar el bundle inicial (~500KB).
 
 // Estado posible de la sección
@@ -14,6 +17,7 @@ type UploadState = 'idle' | 'loading' | 'done' | 'error';
 
 export default function ScanNotes() {
   const { notes, addNote, updateNote, clearNotes } = useStudy();
+  const { user, isPremium, openAuth, openUpgrade } = useAuth();
   const [enhancing, setEnhancing] = useState(false);
   // Estado de la subida: idle (espera), loading (cargando), done (listo)
   const [uploadState, setUploadState] = useState<UploadState>('idle');
@@ -28,14 +32,17 @@ export default function ScanNotes() {
 
   const [statusMsg, setStatusMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [remaining, setRemaining] = useState<number | null>(null);
+  const [quota, setQuota] = useState<QuotaStatus>(() => checkQuota(user));
 
-  // Al montar, muestra cuántas subidas quedan hoy
+  // La cuota cambia al iniciar sesión, cerrar sesión o activar Pro
   useEffect(() => {
-    import('../lib/quota').then(({ checkQuota }) =>
-      checkQuota().then((q) => setRemaining(q.remaining)).catch(() => {}),
-    );
-  }, []);
+    setQuota(checkQuota(user));
+  }, [user]);
+
+  function handleQuotaBlocked() {
+    if (!user) openAuth('register');
+    else openUpgrade();
+  }
 
   // Procesa el archivo con OCR real y lo guarda en el store.
   async function processFile(file: File) {
@@ -52,13 +59,11 @@ export default function ScanNotes() {
       setUploadState('error');
       return;
     }
-    // Cuota diaria: 5 apuntes por IP por día
-    const { checkQuota, recordUpload, DAILY_LIMIT } = await import('../lib/quota');
-    const quota = await checkQuota();
-    setRemaining(quota.remaining);
-    if (!quota.allowed) {
-      setErrorMsg(`Límite diario alcanzado: ${DAILY_LIMIT} apuntes por día. Vuelve mañana.`);
-      setUploadState('error');
+    // Cuota de la demo / cuenta / plan
+    const current = checkQuota(user);
+    setQuota(current);
+    if (!current.allowed) {
+      handleQuotaBlocked();
       return;
     }
     setFileName(file.name);
@@ -89,8 +94,8 @@ export default function ScanNotes() {
       });
       setCurrentNote(note);
       setUploadState('done');
-      // Consume 1 de la cuota diaria y actualiza el contador visible
-      recordUpload().then((q) => setRemaining(q.remaining)).catch(() => {});
+      // Consume 1 de la cuota y actualiza el contador visible
+      setQuota(recordUpload(user));
       // Si hay key de Groq, mejora con IA real en segundo plano
       if (hasGroqKey()) {
         setEnhancing(true);
@@ -173,30 +178,40 @@ export default function ScanNotes() {
           <p style={{ color: '#7C75A6', fontSize: '1rem', maxWidth: '480px', margin: '0 auto' }}>
             Acepta imágenes (JPG, PNG) o archivos PDF. StudySnap organizará todo el contenido por ti.
           </p>
-          {remaining !== null && (
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '0.75rem' }}>
             <p style={{
-              display: 'inline-block', marginTop: '0.75rem',
-              background: remaining > 0 ? '#EDE9FF' : '#fee2e2',
-              color: remaining > 0 ? '#7C6CE6' : '#991b1b',
+              display: 'inline-block',
+              background: quota.unlimited ? '#ECFDF5' : quota.allowed ? '#EDE9FF' : '#fee2e2',
+              color: quota.unlimited ? '#047857' : quota.allowed ? '#7C6CE6' : '#991b1b',
               fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '0.8rem',
-              padding: '0.3rem 0.875rem', borderRadius: '999px',
+              padding: '0.3rem 0.875rem', borderRadius: '999px', margin: 0,
             }}>
-              {remaining > 0
-                ? `📤 Te quedan ${remaining} de 5 subidas hoy`
-                : '🚫 Límite diario alcanzado (5/5) — vuelve mañana'}
+              {describeQuota(quota)}
             </p>
-          )}
+            {!isPremium && (
+              <button
+                type="button"
+                onClick={() => (user ? openUpgrade() : openAuth('register'))}
+                style={{
+                  background: 'white', border: '1px solid #DDD6FE', color: '#7C6CE6',
+                  fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: '0.8rem',
+                  padding: '0.3rem 0.875rem', borderRadius: '999px', cursor: 'pointer',
+                }}
+              >
+                {user ? '⚡ Hazte Pro' : 'Crear cuenta'}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Estado: Esperando archivo (idle) */}
         {uploadState === 'idle' && (
           <div
             className={`drop-zone ${isDragging ? 'drag-over' : ''}`}
-            style={{ padding: '3.5rem 2rem', textAlign: 'center', cursor: 'pointer', opacity: remaining === 0 ? 0.6 : 1 }}
+            style={{ padding: '3.5rem 2rem', textAlign: 'center', cursor: 'pointer', opacity: quota.allowed ? 1 : 0.65 }}
             onClick={() => {
-              if (remaining === 0) {
-                setErrorMsg('Límite diario alcanzado: 5 apuntes por día. Vuelve mañana.');
-                setUploadState('error');
+              if (!quota.allowed) {
+                handleQuotaBlocked();
                 return;
               }
               fileInputRef.current?.click();

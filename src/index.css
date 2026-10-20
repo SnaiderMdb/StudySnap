@@ -206,6 +206,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===== MOBILE NAV ===== */
+@media (max-width: 640px) {
+  .user-menu-name { display: none; }
+  .modal-panel { padding: 1.5rem; }
+}
+
 @media (max-width: 768px) {
   .mobile-menu {
     position: fixed;
@@ -221,6 +226,295 @@ h1, h2, h3, h4, h5, h6 {
     gap: 1rem;
     box-shadow: 0 4px 20px rgba(124, 108, 230, 0.1);
   }
+}
+
+/* ===== MODALES ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(44, 40, 85, 0.5);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  animation: modalFade 0.18s ease-out;
+}
+
+.modal-panel {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 24px 70px rgba(44, 40, 85, 0.28);
+  animation: modalIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+.modal-panel.wide {
+  max-width: 520px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: #F3F0FF;
+  color: #7C75A6;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.15s ease;
+}
+
+.modal-close:hover:not(:disabled) {
+  background: #EDE9FF;
+  color: #2C2855;
+}
+
+.modal-close:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@keyframes modalFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ===== FORMULARIOS ===== */
+.form-label {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #2C2855;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.7rem 0.95rem;
+  border: 2px solid #E2DCFF;
+  border-radius: 0.75rem;
+  background: #FCFBFF;
+  color: #2C2855;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.form-input:focus {
+  border-color: #7C6CE6;
+  background: white;
+}
+
+.form-error {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+  border-radius: 0.65rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.8rem;
+}
+
+.form-note {
+  color: #9891B8;
+  font-size: 0.75rem;
+}
+
+/* ===== TABS AUTH ===== */
+.auth-tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: #F3F0FF;
+  border-radius: 999px;
+  padding: 0.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.auth-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.5rem 0.75rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #7C75A6;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.auth-tab.active {
+  background: white;
+  color: #7C6CE6;
+  box-shadow: 0 2px 8px rgba(124, 108, 230, 0.18);
+}
+
+/* ===== MENÚ DE USUARIO ===== */
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  width: 240px;
+  background: white;
+  border: 1px solid #E2DCFF;
+  border-radius: 1rem;
+  box-shadow: 0 16px 40px rgba(44, 40, 85, 0.16);
+  overflow: hidden;
+  z-index: 150;
+  animation: modalIn 0.16s ease-out;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: white;
+  padding: 0.75rem 1rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #2C2855;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dropdown-item:hover {
+  background: #F8F6FF;
+}
+
+.dropdown-item.danger {
+  color: #B91C1C;
+}
+
+/* ===== PAGO / QR ===== */
+.qr-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid #E2DCFF;
+  border-radius: 1rem;
+  padding: 1rem;
+  margin: 0 auto;
+  width: fit-content;
+  box-shadow: 0 6px 24px rgba(124, 108, 230, 0.1);
+}
+
+.receipt-drop {
+  border: 2px dashed #DDD6FE;
+  border-radius: 1rem;
+  padding: 1rem;
+  text-align: center;
+  background: #FCFBFF;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.receipt-drop:hover,
+.receipt-drop.drag-over {
+  border-color: #7C6CE6;
+  background: #F6F3FF;
+}
+
+.receipt-preview {
+  max-width: 100%;
+  max-height: 120px;
+  border-radius: 0.65rem;
+  object-fit: contain;
+}
+
+.modal-success {
+  text-align: center;
+  padding: 1.5rem 0.5rem 0.5rem;
+}
+
+/* ===== ADMIN ===== */
+.admin-badge {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.admin-badge.pending {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+.admin-badge.approved {
+  background: #ECFDF5;
+  color: #047857;
+}
+
+.admin-badge.rejected {
+  background: #FEF2F2;
+  color: #B91C1C;
+}
+
+.admin-receipt {
+  width: 130px;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background: #FCFBFF;
+  border: 1px solid #E2DCFF;
+  border-radius: 0.85rem;
+  padding: 0.4rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.admin-receipt:hover {
+  border-color: #7C6CE6;
+  box-shadow: 0 4px 16px rgba(124, 108, 230, 0.16);
+}
+
+.admin-receipt img {
+  width: 100%;
+  height: 74px;
+  object-fit: cover;
+  border-radius: 0.55rem;
+}
+
+.admin-receipt span {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #7C6CE6;
+}
+
+/* ===== BOTONES DESHABILITADOS ===== */
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
 }
 
 /* ===== QUIZ OPTION ===== */

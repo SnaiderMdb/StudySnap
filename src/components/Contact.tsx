@@ -156,8 +156,14 @@ export default function Contact() {
             Plataforma educativa · Proyecto tecnológico escolar 2026
           </p>
           <p style={{ color: '#7C75A640', fontSize: '0.8rem' }}>
-            Hecho con 💜 para estudiantes de secundaria
+            Hecho con �Y'o para estudiantes de secundaria
           </p>
+          <a
+            href="#admin"
+            style={{ color: '#a78bfa', fontSize: '0.75rem', display: 'inline-block', marginTop: '0.75rem' }}
+          >
+            Panel de administración
+          </a>
         </div>
 
       </div>
