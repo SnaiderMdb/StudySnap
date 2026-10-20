@@ -418,6 +418,13 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 6px 24px rgba(124, 108, 230, 0.1);
 }
 
+.qr-image {
+  width: 190px;
+  height: auto;
+  border-radius: 0.5rem;
+  display: block;
+}
+
 .receipt-drop {
   border: 2px dashed #DDD6FE;
   border-radius: 1rem;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import paymentQr from '../assets/payment-qr.jpeg';
 import { useAuth } from '../store/AuthContext';
 import { formatPlanExpiry, PREMIUM_DAYS, PREMIUM_PLAN_NAME, PREMIUM_PRICE_BOB } from '../lib/auth';
 import { formatPaymentDate } from '../lib/payments';
@@ -78,8 +78,6 @@ export default function UpgradeModal() {
       setSubmitting(false);
     }
   }
-
-  const qrValue = `studysnap://pago?plan=pro&monto=${PREMIUM_PRICE_BOB}&ref=${user.id}`;
 
   return (
     <div className="modal-overlay" role="presentation" onMouseDown={(e) => {
@@ -168,9 +166,13 @@ export default function UpgradeModal() {
             </div>
 
             <div className="qr-frame">
-              <QRCodeSVG value={qrValue} size={168} bgColor="#FFFFFF" fgColor="#2C2855" level="M" />
+              <img
+                src={paymentQr}
+                alt="QR de pago de StudySnap"
+                className="qr-image"
+              />
               <p style={{ marginTop: '0.6rem', fontSize: '0.75rem', color: '#7C75A6' }}>
-                QR de demostración · Bs {PREMIUM_PRICE_BOB}
+                Escanea este QR para pagar Bs {PREMIUM_PRICE_BOB}
               </p>
             </div>
 

@@ -1,6 +1,7 @@
 // IA real con Groq (gratis, sin tarjeta) — genera resumen + flashcards + quiz
 // de UNA vez desde el texto OCR. Si no hay key, la app usa el análisis local.
-// Key: console.groq.com → VITE_GROQ_API_KEY en .env (nunca subir .env a git).
+// Keys: console.groq.com → VITE_GROQ_API_KEY y VITE_GROQ_API_KEY_FALLBACK en .env.
+// .env está ignorado por git; nunca subas las keys al repositorio.
 
 import type { Analysis } from './study';
 import type { Flashcard, QuizQuestion } from '../store/types';
@@ -10,8 +11,22 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 // Activos para chat: qwen/qwen3.8-27b (recomendado), openai/gpt-oss-20b/120b.
 const GROQ_MODEL = 'qwen/qwen3.8-27b';
 
+// Varias keys opcionales: si la primera agota sus tokens (401/429), se prueba la siguiente.
+const GROQ_KEY_VARS = [
+  'VITE_GROQ_API_KEY',
+  'VITE_GROQ_API_KEY_FALLBACK',
+  'VITE_GROQ_API_KEY_FALLBACK_2',
+] as const;
+
+function getGroqKeys(): string[] {
+  const keys = GROQ_KEY_VARS
+    .map((name) => (import.meta.env[name] as string | undefined)?.trim() ?? '')
+    .filter(Boolean);
+  return [...new Set(keys)];
+}
+
 export function hasGroqKey(): boolean {
-  return Boolean((import.meta.env.VITE_GROQ_API_KEY as string | undefined)?.trim());
+  return getGroqKeys().length > 0;
 }
 
 export interface AiDeck extends Analysis {
@@ -118,36 +133,42 @@ export function buildLocalDeck(analysis: Analysis): AiDeck {
  * si no, devuelve el deck local al instante. Nunca lanza.
  */
 export async function generateDeck(text: string, fallback: Analysis): Promise<AiDeck & { aiEnhanced: boolean }> {
-  const key = (import.meta.env.VITE_GROQ_API_KEY as string | undefined)?.trim();
-  if (!key) return { ...buildLocalDeck(fallback), aiEnhanced: false };
-  try {
-    const res = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [{ role: 'user', content: DECK_PROMPT(text) }],
-        temperature: 0.3,
-        max_tokens: 3000,
-      }),
-    });
-    if (!res.ok) {
-      const msg = res.status === 401
-        ? 'Key de Groq inválida (401). Revisa tu .env.'
-        : res.status === 429
-          ? 'Límite gratis de Groq alcanzado (429). Espera un minuto.'
-          : `Groq respondió ${res.status}. Uso análisis local.`;
-      console.warn('[AI]', msg);
-      return { ...buildLocalDeck(fallback), aiEnhanced: false };
+  const keys = getGroqKeys();
+  if (!keys.length) return { ...buildLocalDeck(fallback), aiEnhanced: false };
+
+  const body = JSON.stringify({
+    model: GROQ_MODEL,
+    messages: [{ role: 'user', content: DECK_PROMPT(text) }],
+    temperature: 0.3,
+    max_tokens: 3000,
+  });
+
+  for (let i = 0; i < keys.length; i += 1) {
+    try {
+      const res = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${keys[i]}`, 'Content-Type': 'application/json' },
+        body,
+      });
+      if (!res.ok) {
+        const msg = res.status === 401
+          ? `Key de Groq ${i + 1} inválida (401).`
+          : res.status === 429
+            ? `Key de Groq ${i + 1} sin tokens disponibles (429).`
+            : `Groq respondió ${res.status} con la key ${i + 1}.`;
+        console.warn('[AI]', msg, i < keys.length - 1 ? 'Probando la siguiente key…' : 'Uso análisis local.');
+        continue;
+      }
+      const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+      const content = json.choices?.[0]?.message?.content ?? '';
+      const deck = parseDeck(content, fallback);
+      return { ...deck, aiEnhanced: true };
+    } catch (e) {
+      console.warn('[AI] error de conexión con Groq usando la key', i + 1, e);
     }
-    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const content = json.choices?.[0]?.message?.content ?? '';
-    const deck = parseDeck(content, fallback);
-    return { ...deck, aiEnhanced: true };
-  } catch (e) {
-    console.warn('[AI] sin conexión a Groq, uso local:', e);
-    return { ...buildLocalDeck(fallback), aiEnhanced: false };
   }
+
+  return { ...buildLocalDeck(fallback), aiEnhanced: false };
 }
 
 /** Compat: mejora solo el resumen (usado en versiones previas). */
